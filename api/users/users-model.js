@@ -11,8 +11,14 @@ const findBy = (filter) => {
 }
 
 const add = async (user) => {
-    const newUser = await db('users').insert(user)
-    return findBy(newUser)
+    return await db(`users`)
+        .insert(user)
+        .then( id => {
+            return findBy({id: id})
+        })
+        .catch(err => {
+            console.log(`ERROR catching in auth-router add() function:`, err)
+        })
 }
 
 module.exports = {

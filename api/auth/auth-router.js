@@ -1,5 +1,4 @@
 const router = require('express').Router();
-const restricted = require(`../middleware/restricted`)
 const checkUsernameFree = require(`../middleware/checkUsernameFree`)
 const validateUsername = require(`../middleware/validateUsername`)
 const {JWT_SECRET, BCRYPT_ROUNDS} = require(`./secrets`)
@@ -8,7 +7,7 @@ const bcrypt = require(`bcryptjs`)
 const Users = require(`../users/users-model`)
 
 
-router.post('/register', restricted, checkUsernameFree, (req, res) => {
+router.post('/register', checkUsernameFree, (req, res) => {
   /*
     IMPLEMENT
     You are welcome to build additional middlewares to help with the endpoint's functionality.
@@ -35,8 +34,19 @@ router.post('/register', restricted, checkUsernameFree, (req, res) => {
     4- On FAILED registration due to the `username` being taken,
       the response body should include a string exactly as follows: "username taken".
   */
-    
-      const {username, password} = req.body
+
+      let {username, password} = req.body
+
+      if(password === undefined){
+        return res.status(400).json({message: `username and password required`})
+      }
+      else if(password){
+        password = password.trim()
+
+        if(password.length === 0)
+          return res.status(400).json({message: `username and password required`})
+      }
+      
       const hash = bcrypt.hashSync(password, BCRYPT_ROUNDS)
       const newUser = {username, password: hash}
 
@@ -47,9 +57,10 @@ router.post('/register', restricted, checkUsernameFree, (req, res) => {
         .catch(() => {
           res.status(400).json({message: `username and password required`})
         })
+      
 });
 
-router.post('/login', restricted, validateUsername, (req, res) => {
+router.post('/login', validateUsername, (req, res) => {
   /*
     IMPLEMENT
     You are welcome to build additional middlewares to help with the endpoint's functionality.
@@ -76,20 +87,7 @@ router.post('/login', restricted, validateUsername, (req, res) => {
     
     let {username, password} = req.body
 
-    const buildToken = (user) => {
-      const payload = {
-        subject: user.id,
-        username: user.username,
-      }
-
-      const expires = {
-        expiresIn: `1d`
-      }
-
-      return jwt.sign(payload, JWT_SECRET, expires)
-    }
-
-    Users.findBy({username})
+    Users.findBy({username: username})
       .then(user => {
         if(user && bcrypt.compareSync(password, user.password)){
           const token = buildToken(user)
@@ -112,5 +110,18 @@ router.post('/login', restricted, validateUsername, (req, res) => {
         })
       })
 });
+
+const buildToken = (user) => {
+  const payload = {
+    subject: user.id,
+    username: user.username,
+  }
+
+  const expires = {
+    expiresIn: `1d`
+  }
+
+  return jwt.sign(payload, JWT_SECRET, expires)
+}
 
 module.exports = router;

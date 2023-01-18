@@ -3,10 +3,10 @@ const Users = require(`../users/users-model`)
 module.exports = (req, res, next) => {
     const {username} = req.body
 
-    Users.findBy({username})
+    Users.findBy({username: username})
         .then(user => {
             if(!user){
-                return res.status(401).json({message: `username and password required`})
+                return res.status(400).json({message: `username and password required`})
             }
             else{
                 next()
